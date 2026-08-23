@@ -3,153 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>도메인/포트 일괄 스캐너</title>
+    <title>도메인/포트 일괄 스캐너 (API 연동)</title>
+    <!-- 스타일(CSS)은 이전 버전과 동일하게 유지 (생략 없이 사용하세요) -->
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
-            color: #333;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-        }
-        .container {
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            width: 100%;
-            max-width: 800px;
-        }
-        h2 {
-            margin-top: 0;
-            color: #2c3e50;
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 10px;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 8px;
-            color: #2c3e50;
-        }
-        textarea {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            box-sizing: border-box;
-            font-size: 14px;
-            font-family: 'Consolas', 'Courier New', monospace; /* 코드 입력 느낌을 위해 고정폭 글꼴 사용 */
-            resize: vertical;
-            line-height: 1.5;
-        }
-        button {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            font-size: 16px;
-            border-radius: 5px;
-            cursor: pointer;
-            width: 100%;
-            font-weight: bold;
-            transition: background-color 0.3s;
-        }
-        button:hover {
-            background-color: #2980b9;
-        }
-        button:disabled {
-            background-color: #95a5a6;
-            cursor: not-allowed;
-        }
-        
-        .domain-result {
-            margin-top: 25px;
-            border: 1px solid #dcdde1;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
-        .domain-header {
-            background-color: #e8f4f8;
-            padding: 15px;
-            border-bottom: 1px solid #dcdde1;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .domain-title {
-            font-size: 16px;
-            font-weight: bold;
-            color: #2c3e50;
-        }
-        .domain-ip {
-            font-size: 14px;
-            color: #2980b9;
-            font-weight: bold;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #eee;
-            text-align: left;
-            font-size: 14px;
-        }
-        th {
-            background-color: #f8f9fa;
-            font-weight: bold;
-            color: #555;
-        }
-        tr:last-child td {
-            border-bottom: none;
-        }
-        .status-open {
-            color: #27ae60;
-            font-weight: bold;
-        }
-        .status-closed {
-            color: #e74c3c;
-            font-weight: bold;
-        }
-        .status-loading {
-            color: #f39c12;
-            font-weight: bold;
-        }
-        .note {
-            font-size: 12px;
-            color: #7f8c8d;
-            margin-top: 15px;
-            line-height: 1.5;
-        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; padding: 20px; display: flex; justify-content: center; }
+        .container { background-color: #fff; padding: 30px; border-radius: 10px; width: 100%; max-width: 800px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; resize: vertical; margin-bottom: 15px; }
+        button { background-color: #3498db; color: white; border: none; padding: 12px 20px; border-radius: 5px; cursor: pointer; width: 100%; font-weight: bold; }
+        button:disabled { background-color: #95a5a6; cursor: not-allowed; }
+        .domain-result { margin-top: 25px; border: 1px solid #dcdde1; border-radius: 8px; }
+        .domain-header { background-color: #e8f4f8; padding: 15px; display: flex; justify-content: space-between; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px 15px; border-bottom: 1px solid #eee; text-align: left; }
+        .status-open { color: #27ae60; font-weight: bold; }
+        .status-closed { color: #e74c3c; font-weight: bold; }
+        .status-loading { color: #f39c12; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>🌐 도메인 및 포트 일괄 점검 도구</h2>
-    
-    <div class="form-group">
-        <label for="inputData">점검 대상 입력 (형식: 도메인, 포트1, 포트2)</label>
-        <textarea id="inputData" rows="6" placeholder="naver.com&#10;google.com, 8080, 8443&#10;example.com, 3306"></textarea>
-    </div>
-    
+    <h2>🌐 도메인 및 포트 점검 (백엔드 연동)</h2>
+    <textarea id="inputData" rows="6" placeholder="naver.com&#10;google.com, 8080, 8443"></textarea>
     <button id="scanBtn">점검 시작</button>
-
     <div id="resultsContainer"></div>
-    
-    <div class="note">
-        * 80번과 443번 포트는 입력하지 않아도 자동으로 검사됩니다.<br>
-        * 웹 브라우저 환경의 특성(CORS 보안 정책)상 상세 응답 코드는 가려지며 서비스 접속 성공 여부만 표시됩니다.
-    </div>
 </div>
 
 <script>
@@ -158,76 +35,53 @@
         const inputData = document.getElementById('inputData').value;
         const resultsContainer = document.getElementById('resultsContainer');
         
-        // 입력값을 줄 단위로 분리
         const lines = inputData.split('\n');
         let targets = [];
 
-        // 각 줄을 순회하며 도메인과 포트 파싱
         lines.forEach(line => {
-            if (!line.trim()) return; // 빈 줄 무시
-            
+            if (!line.trim()) return;
             let parts = line.split(',');
-            let domain = parts[0].replace(/[^\w\.-]/g, ''); // 도메인 정제 (공백, 특수문자 제거)
+            let domain = parts[0].replace(/[^\w\.-]/g, '');
+            if (!domain) return;
             
-            if (!domain) return; // 도메인이 없으면 건너뜀
-
             let customPorts = [];
-            // 두 번째 항목부터는 추가 포트로 처리
             for (let i = 1; i < parts.length; i++) {
                 let p = parseInt(parts[i].replace(/[^\d]/g, ''), 10);
-                if (!isNaN(p)) {
-                    customPorts.push(p);
-                }
+                if (!isNaN(p)) customPorts.push(p);
             }
-
-            // 기본 포트(80, 443)와 추가 포트를 합치고 중복 제거, 오름차순 정렬
             let ports = [...new Set([80, 443, ...customPorts])].sort((a, b) => a - b);
-            
-            targets.push({ domain: domain, ports: ports });
+            targets.push({ domain, ports });
         });
 
-        if (targets.length === 0) {
-            alert('유효한 입력값이 없습니다. 형식을 확인해주세요.');
-            return;
-        }
+        if (targets.length === 0) return alert('유효한 입력값이 없습니다.');
 
-        // UI 초기화
         resultsContainer.innerHTML = '';
         scanBtn.disabled = true;
         scanBtn.innerText = '검사 진행 중...';
 
-        // 도메인별 처리 함수 (고유 index를 받아 DOM ID 충돌 방지)
         const processTarget = async (target, index) => {
-            const domain = target.domain;
-            const ports = target.ports;
+            const { domain, ports } = target;
             const uniqueId = `block-${index}`;
 
-            const domainBlock = document.createElement('div');
-            domainBlock.className = 'domain-result';
-            
-            domainBlock.innerHTML = `
+            const block = document.createElement('div');
+            block.className = 'domain-result';
+            block.innerHTML = `
                 <div class="domain-header">
-                    <span class="domain-title">🌍 ${domain}</span>
-                    <span class="domain-ip" id="ip-${uniqueId}">DNS 조회 중... ⏳</span>
+                    <span>🌍 ${domain}</span>
+                    <span id="ip-${uniqueId}">DNS 조회 중... ⏳</span>
                 </div>
                 <table>
                     <thead>
-                        <tr>
-                            <th width="20%">포트</th>
-                            <th width="30%">접속 상태</th>
-                            <th width="50%">웹 서비스 여부</th>
-                        </tr>
+                        <tr><th width="20%">포트</th><th width="30%">접속 상태</th><th width="50%">웹 서비스 여부</th></tr>
                     </thead>
-                    <tbody id="tbody-${uniqueId}">
-                    </tbody>
+                    <tbody id="tbody-${uniqueId}"></tbody>
                 </table>
             `;
-            resultsContainer.appendChild(domainBlock);
-            
+            resultsContainer.appendChild(block);
             const tbody = document.getElementById(`tbody-${uniqueId}`);
             const ipSpan = document.getElementById(`ip-${uniqueId}`);
 
-            // 1. IP 주소 조회 (Google DoH API)
+            // 1. IP 조회
             try {
                 let res = await fetch(`https://dns.google/resolve?name=${domain}&type=A`);
                 let data = await res.json();
@@ -235,85 +89,49 @@
                 
                 if (aRecord) {
                     ipSpan.innerText = `IP: ${aRecord.data}`;
-                    ipSpan.style.color = '#2980b9';
                 } else {
-                    ipSpan.innerText = 'IP를 찾을 수 없음 (조회 실패)';
-                    ipSpan.style.color = '#e74c3c';
-                    
-                    let tr = document.createElement('tr');
-                    tr.innerHTML = `<td colspan="3" style="text-align:center; color:#e74c3c;">IP를 찾을 수 없어 포트 검사를 건너뜁니다.</td>`;
-                    tbody.appendChild(tr);
+                    ipSpan.innerText = 'IP 조회 실패';
+                    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:red;">IP를 찾을 수 없습니다.</td></tr>`;
                     return; 
                 }
             } catch (e) {
                 ipSpan.innerText = '네트워크 오류';
-                ipSpan.style.color = '#e74c3c';
                 return;
             }
 
-            // 2. 포트별 접속 테스트 수행
+            // 2. 백엔드 API를 호출하여 포트 검사
             for (let port of ports) {
-                let tr = document.createElement('tr');
                 let portId = `${uniqueId}-${port}`;
+                let tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td><strong>${port}</strong></td>
-                    <td id="status-${portId}" class="status-loading">검사 중...</td>
+                    <td id="status-${portId}" class="status-loading">API 호출 중...</td>
                     <td id="detail-${portId}">-</td>
                 `;
                 tbody.appendChild(tr);
 
-                let result = await checkPort(domain, port);
-                
-                let statusTd = document.getElementById(`status-${portId}`);
-                let detailTd = document.getElementById(`detail-${portId}`);
-                
-                statusTd.innerText = result.status;
-                statusTd.className = result.isOpen ? "status-open" : "status-closed";
-                detailTd.innerText = result.detail;
-            }
-        };
-
-        // 포트 검사 로직
-        const checkPort = async (targetDomain, port) => {
-            let schemes = port === 443 ? ['https', 'http'] : ['http', 'https'];
-            
-            for (let scheme of schemes) {
-                let url = `${scheme}://${targetDomain}:${port}`;
                 try {
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 3000); 
-                    
-                    await fetch(url, { mode: 'no-cors', signal: controller.signal });
-                    clearTimeout(timeoutId);
-                    
-                    return {
-                        status: "접속 가능 (Open)",
-                        detail: `웹 서비스 구동 중 (${scheme.toUpperCase()})`,
-                        isOpen: true
-                    };
+                    // 브라우저가 아닌 '우리가 만든 백엔드'에 검사를 요청함
+                    let response = await fetch(`/api/scan?domain=${domain}&port=${port}`);
+                    let result = await response.json();
+
+                    document.getElementById(`status-${portId}`).innerText = result.status;
+                    document.getElementById(`status-${portId}`).className = result.isOpen ? "status-open" : "status-closed";
+                    document.getElementById(`detail-${portId}`).innerText = result.detail || result.error;
                 } catch (e) {
-                    if (e.name === 'AbortError') {
-                        continue;
-                    }
+                    document.getElementById(`status-${portId}`).innerText = "API 통신 에러";
+                    document.getElementById(`status-${portId}`).className = "status-closed";
                 }
             }
-            return {
-                status: "접속 불가 (Closed)",
-                detail: "응답 없음 (닫힘 또는 차단됨)",
-                isOpen: false
-            };
         };
 
-        // 타겟 리스트 순차 처리
         for (let i = 0; i < targets.length; i++) {
             await processTarget(targets[i], i);
         }
 
-        // 전체 완료
         scanBtn.innerText = '점검 완료 (다시 검사하기)';
         scanBtn.disabled = false;
     });
 </script>
-
 </body>
 </html>
