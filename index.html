@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>도메인/IP 포트 스캐너</title>
+    <title>도메인/IP 포트 스캐너 (가상 호스트 조회)</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; padding: 20px; display: flex; justify-content: center; margin: 0; }
         .container { background-color: #fff; padding: 30px; border-radius: 10px; width: 100%; max-width: 800px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
@@ -15,13 +15,14 @@
         .domain-header { background-color: #e8f4f8; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #dcdde1; }
         .domain-title { font-weight: bold; font-size: 16px; color: #2c3e50; }
         .domain-ip { font-size: 14px; font-weight: bold; color: #2980b9; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px 15px; border-bottom: 1px solid #eee; text-align: left; font-size: 14px; }
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        th, td { padding: 12px 15px; border-bottom: 1px solid #eee; text-align: left; font-size: 14px; word-wrap: break-word; }
         th { background-color: #f8f9fa; color: #555; }
         .status-open { color: #27ae60; font-weight: bold; }
         .status-closed { color: #e74c3c; font-weight: bold; }
         .status-loading { color: #f39c12; font-weight: bold; }
         .note { font-size: 12px; color: #7f8c8d; margin-top: 15px; line-height: 1.5; }
+        .vhost-row td { font-size: 13px; line-height: 1.4; }
     </style>
 </head>
 <body>
@@ -30,14 +31,14 @@
     <h2>🌐 도메인 및 IP 포트 점검 도구</h2>
     
     <label style="display:block; font-weight:bold; margin-bottom:8px;">점검 대상 입력 (도메인 또는 IP, 포트)</label>
-    <textarea id="inputData" rows="6" placeholder="naver.com&#10;8.8.8.8, 53, 443&#10;example.com, 3306"></textarea>
+    <textarea id="inputData" rows="6" placeholder="naver.com&#10;123.41.26.97, 80, 443&#10;example.com, 3306"></textarea>
     
     <button id="scanBtn">점검 시작</button>
     <div id="resultsContainer"></div>
     
     <div class="note">
-        * 도메인 입력 시 IP를 조회하며, IP 입력 시 등록된 도메인(PTR)을 조회합니다.<br>
-        * 80번과 443번 포트는 기본적으로 함께 검사됩니다.
+        * IP 주소 입력 시 HackerTarget API를 통해 해당 IP를 사용 중인 가상 호스트(도메인) 목록을 조회합니다.<br>
+        <span style="color:#e74c3c;">* 주의: HackerTarget 무료 API는 보안상 IP당 하루 50회의 조회 제한(Rate Limit)이 있습니다.</span>
     </div>
 </div>
 
@@ -53,7 +54,6 @@
         lines.forEach(line => {
             if (!line.trim()) return;
             let parts = line.split(',');
-            // IP 주소나 도메인에 허용되는 문자만 남기기
             let targetName = parts[0].replace(/[^\w\.-]/g, ''); 
             if (!targetName) return;
             
@@ -66,9 +66,7 @@
             targets.push({ targetName, ports });
         });
 
-        if (targets.length === 0) {
-            return alert('유효한 입력값이 없습니다.');
-        }
+        if (targets.length === 0) return alert('유효한 입력값이 없습니다.');
 
         resultsContainer.innerHTML = '';
         scanBtn.disabled = true;
@@ -77,8 +75,6 @@
         const processTarget = async (target, index) => {
             const { targetName, ports } = target;
             const uniqueId = `block-${index}`;
-            
-            // 입력값이 IP(IPv4) 형식인지 정규식으로 판별
             const isIp = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(targetName);
 
             const block = document.createElement('div');
@@ -99,29 +95,42 @@
             const tbody = document.getElementById(`tbody-${uniqueId}`);
             const infoSpan = document.getElementById(`info-${uniqueId}`);
 
-            // 1. IP 또는 도메인 확인
+            // 1. IP 또는 도메인 관련 정보 조회
             if (isIp) {
-                // IP 입력 시 -> 역방향 DNS(PTR Record) 조회
-                const reverseIp = targetName.split('.').reverse().join('.') + '.in-addr.arpa';
+                infoSpan.innerText = 'IP 점검 중';
+                
+                // IP 입력 시 -> HackerTarget API로 Reverse IP Lookup (가상 호스트 조회) 수행
+                let vhostTr = document.createElement('tr');
+                vhostTr.className = 'vhost-row';
+                vhostTr.innerHTML = `<td colspan="3" style="background-color:#fbfcfc; color:#555;">🔍 동일 IP 연결 도메인(가상 호스트) 조회 중...</td>`;
+                tbody.appendChild(vhostTr);
+
                 try {
-                    let res = await fetch(`https://dns.google/resolve?name=${reverseIp}&type=PTR`);
-                    let data = await res.json();
-                    let ptrRecord = data.Answer ? data.Answer.find(ans => ans.type === 12) : null;
-                    
-                    if (ptrRecord) {
-                        // 결과 끝에 붙는 점(.) 제거
-                        let domainFound = ptrRecord.data.replace(/\.$/, '');
-                        infoSpan.innerText = `도메인: ${domainFound}`;
-                    } else {
-                        infoSpan.innerText = '연결된 도메인 없음';
-                        infoSpan.style.color = '#7f8c8d';
+                    let htRes = await fetch(`https://api.hackertarget.com/reverseiplookup/?q=${targetName}`);
+                    let htText = await htRes.text();
+                    let domains = htText.split('\n').map(d => d.trim()).filter(d => d);
+
+                    // API 에러/제한 응답 처리
+                    if (domains.length > 0 && domains[0].toLowerCase().includes('api count')) {
+                        vhostTr.innerHTML = `<td colspan="3" style="background-color:#fdf2e9; color:#e67e22;">⚠️ 도메인 조회 한도 초과 (HackerTarget 무료 API 일일 제공량 소진)</td>`;
+                    } 
+                    else if (domains.length > 0 && (domains[0].toLowerCase().includes('no dns') || domains[0].toLowerCase().includes('error'))) {
+                        vhostTr.innerHTML = `<td colspan="3" style="background-color:#f9ebea; color:#7f8c8d;">🔗 연결된 도메인 없음 (데이터베이스에 기록 없음)</td>`;
+                    } 
+                    else if (domains.length > 0) {
+                        // 결과가 너무 길면 화면이 깨지므로 10개까지만 표시하고 생략
+                        let limit = 10;
+                        let displayDomains = domains.slice(0, limit).join(', ');
+                        if (domains.length > limit) displayDomains += ` <br><span style="color:#7f8c8d;">... (외 ${domains.length - limit}개 더 있음)</span>`;
+                        
+                        vhostTr.innerHTML = `<td colspan="3" style="background-color:#e8f8f5; color:#16a085;"><strong>🔗 연결된 도메인 (${domains.length}개 발견):</strong><br>${displayDomains}</td>`;
                     }
                 } catch (e) {
-                    infoSpan.innerText = '도메인 조회 실패';
-                    infoSpan.style.color = '#e74c3c';
+                    vhostTr.innerHTML = `<td colspan="3" style="background-color:#f9ebea; color:#c0392b;">⚠️ 도메인 조회 실패 (네트워크 오류)</td>`;
                 }
+
             } else {
-                // 도메인 입력 시 -> IP(A Record) 조회
+                // 도메인 입력 시 -> 기존처럼 A 레코드(IP) 조회
                 try {
                     let res = await fetch(`https://dns.google/resolve?name=${targetName}&type=A`);
                     let data = await res.json();
@@ -142,7 +151,7 @@
                 }
             }
 
-            // 2. 백엔드 API를 호출하여 포트 검사
+            // 2. 포트 스캔 (Vercel API 통신)
             for (let port of ports) {
                 let portId = `${uniqueId}-${port}`;
                 let tr = document.createElement('tr');
@@ -154,7 +163,6 @@
                 tbody.appendChild(tr);
 
                 try {
-                    // 백엔드로 검사 요청 (IP든 도메인이든 동일하게 전달)
                     let response = await fetch(`/api/scan?domain=${targetName}&port=${port}`);
                     let result = await response.json();
 
