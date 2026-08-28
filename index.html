@@ -9,7 +9,7 @@
         .container { background-color: #fff; padding: 30px; border-radius: 10px; width: 100%; max-width: 800px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         h2 { margin-top: 0; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
         textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; resize: vertical; margin-bottom: 15px; font-family: 'Consolas', monospace; }
-        button { background-color: #3498db; color: white; border: none; padding: 12px 20px; border-radius: 5px; cursor: pointer; width: 100%; font-weight: bold; font-size: 16px; }
+        button { background-color: #3498db; color: white; border: none; padding: 12px 20px; border-radius: 5px; cursor: pointer; width: 100%; font-weight: bold; font-size: 16px; transition: background-color 0.3s; }
         button:disabled { background-color: #95a5a6; cursor: not-allowed; }
         .domain-result { margin-top: 25px; border: 1px solid #dcdde1; border-radius: 8px; overflow: hidden; }
         .domain-header { background-color: #e8f4f8; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #dcdde1; }
@@ -23,6 +23,18 @@
         .status-loading { color: #f39c12; font-weight: bold; }
         .note { font-size: 12px; color: #7f8c8d; margin-top: 15px; line-height: 1.5; }
         .vhost-row td { font-size: 13px; line-height: 1.4; }
+        
+        /* 복사 버튼 전용 스타일 */
+        .copy-btn {
+            background-color: #1abc9c;
+            width: auto;
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 4px;
+            margin-left: 10px;
+            white-space: nowrap;
+        }
+        .copy-btn:hover { background-color: #16a085; }
     </style>
 </head>
 <body>
@@ -43,6 +55,9 @@
 </div>
 
 <script>
+    // IP별 HackerTarget 조회 결과를 저장해두는 캐시(Cache) 저장소
+    const vhostCache = {};
+
     document.getElementById('scanBtn').addEventListener('click', async () => {
         const scanBtn = document.getElementById('scanBtn');
         const inputData = document.getElementById('inputData').value;
@@ -99,34 +114,90 @@
             if (isIp) {
                 infoSpan.innerText = 'IP 점검 중';
                 
-                // IP 입력 시 -> HackerTarget API로 Reverse IP Lookup (가상 호스트 조회) 수행
                 let vhostTr = document.createElement('tr');
                 vhostTr.className = 'vhost-row';
-                vhostTr.innerHTML = `<td colspan="3" style="background-color:#fbfcfc; color:#555;">🔍 동일 IP 연결 도메인(가상 호스트) 조회 중...</td>`;
                 tbody.appendChild(vhostTr);
 
-                try {
-                    let htRes = await fetch(`https://api.hackertarget.com/reverseiplookup/?q=${targetName}`);
-                    let htText = await htRes.text();
-                    let domains = htText.split('\n').map(d => d.trim()).filter(d => d);
+                let domains = [];
+                let isError = false;
+                let errorMessage = "";
 
-                    // API 에러/제한 응답 처리
-                    if (domains.length > 0 && domains[0].toLowerCase().includes('api count')) {
-                        vhostTr.innerHTML = `<td colspan="3" style="background-color:#fdf2e9; color:#e67e22;">⚠️ 도메인 조회 한도 초과 (HackerTarget 무료 API 일일 제공량 소진)</td>`;
-                    } 
-                    else if (domains.length > 0 && (domains[0].toLowerCase().includes('no dns') || domains[0].toLowerCase().includes('error'))) {
-                        vhostTr.innerHTML = `<td colspan="3" style="background-color:#f9ebea; color:#7f8c8d;">🔗 연결된 도메인 없음 (데이터베이스에 기록 없음)</td>`;
-                    } 
-                    else if (domains.length > 0) {
-                        // 결과가 너무 길면 화면이 깨지므로 10개까지만 표시하고 생략
-                        let limit = 10;
-                        let displayDomains = domains.slice(0, limit).join(', ');
-                        if (domains.length > limit) displayDomains += ` <br><span style="color:#7f8c8d;">... (외 ${domains.length - limit}개 더 있음)</span>`;
-                        
-                        vhostTr.innerHTML = `<td colspan="3" style="background-color:#e8f8f5; color:#16a085;"><strong>🔗 연결된 도메인 (${domains.length}개 발견):</strong><br>${displayDomains}</td>`;
+                // 캐시에 동일한 IP 결과가 있는지 확인
+                if (vhostCache[targetName]) {
+                    domains = vhostCache[targetName].domains;
+                    isError = vhostCache[targetName].isError;
+                    errorMessage = vhostCache[targetName].errorMessage;
+                } else {
+                    // 캐시에 없으면 API 호출
+                    vhostTr.innerHTML = `<td colspan="3" style="background-color:#fbfcfc; color:#555;">🔍 동일 IP 연결 도메인(가상 호스트) 조회 중...</td>`;
+                    try {
+                        let htRes = await fetch(`https://api.hackertarget.com/reverseiplookup/?q=${targetName}`);
+                        let htText = await htRes.text();
+                        let fetchedDomains = htText.split('\n').map(d => d.trim()).filter(d => d);
+
+                        if (fetchedDomains.length > 0 && fetchedDomains[0].toLowerCase().includes('api count')) {
+                            isError = true;
+                            errorMessage = "⚠️ 도메인 조회 한도 초과 (HackerTarget 무료 API 일일 제공량 소진)";
+                        } 
+                        else if (fetchedDomains.length > 0 && (fetchedDomains[0].toLowerCase().includes('no dns') || fetchedDomains[0].toLowerCase().includes('error'))) {
+                            isError = true;
+                            errorMessage = "🔗 연결된 도메인 없음 (데이터베이스에 기록 없음)";
+                        } 
+                        else {
+                            domains = fetchedDomains;
+                        }
+                        // 조회된 결과 캐시에 저장
+                        vhostCache[targetName] = { domains, isError, errorMessage };
+                    } catch (e) {
+                        isError = true;
+                        errorMessage = "⚠️ 도메인 조회 실패 (네트워크 오류)";
+                        vhostCache[targetName] = { domains: [], isError, errorMessage };
                     }
-                } catch (e) {
-                    vhostTr.innerHTML = `<td colspan="3" style="background-color:#f9ebea; color:#c0392b;">⚠️ 도메인 조회 실패 (네트워크 오류)</td>`;
+                }
+
+                // 결과 화면 렌더링
+                if (isError) {
+                    let bgColor = errorMessage.includes('한도 초과') ? '#fdf2e9' : '#f9ebea';
+                    let fontColor = errorMessage.includes('한도 초과') ? '#e67e22' : (errorMessage.includes('없음') ? '#7f8c8d' : '#c0392b');
+                    vhostTr.innerHTML = `<td colspan="3" style="background-color:${bgColor}; color:${fontColor};">${errorMessage}</td>`;
+                } 
+                else if (domains.length > 0) {
+                    let limit = 10;
+                    let displayDomains = domains.slice(0, limit).join(', ');
+                    if (domains.length > limit) displayDomains += ` <br><span style="color:#7f8c8d;">... (외 ${domains.length - limit}개 더 있음)</span>`;
+                    
+                    let copyBtnId = `copyBtn-${uniqueId}`;
+                    
+                    vhostTr.innerHTML = `
+                        <td colspan="3" style="background-color:#e8f8f5; color:#16a085;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                <div>
+                                    <strong>🔗 연결된 도메인 (${domains.length}개 발견):</strong><br>
+                                    ${displayDomains}
+                                </div>
+                                <button id="${copyBtnId}" class="copy-btn">📋 전체 복사</button>
+                            </div>
+                        </td>`;
+                    
+                    // 복사 버튼 이벤트 바인딩
+                    setTimeout(() => {
+                        const copyBtn = document.getElementById(copyBtnId);
+                        if (copyBtn) {
+                            copyBtn.addEventListener('click', () => {
+                                // 줄바꿈(\n) 단위로 도메인 목록을 복사
+                                navigator.clipboard.writeText(domains.join('\n')).then(() => {
+                                    copyBtn.innerText = '✅ 복사 완료';
+                                    copyBtn.style.backgroundColor = '#27ae60';
+                                    setTimeout(() => {
+                                        copyBtn.innerText = '📋 전체 복사';
+                                        copyBtn.style.backgroundColor = '#1abc9c';
+                                    }, 2000); // 2초 뒤 원상복구
+                                }).catch(err => {
+                                    alert('복사에 실패했습니다. 브라우저 권한을 확인해주세요.');
+                                });
+                            });
+                        }
+                    }, 0);
                 }
 
             } else {
