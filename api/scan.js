@@ -1,37 +1,72 @@
-// api/scan.js
 const http = require('http');
 const https = require('https');
 const net = require('net');
 
 export default async function handler(req, res) {
-    // 1. 입력값 확인
-    const { domain, port } = req.query;
+    const { type, domain, port, ip } = req.query;
+
+    // ==========================================
+    // [기능 1] 가상 호스트(도메인) 조회 로직
+    // ==========================================
+    if (type === 'vhost') {
+        if (!ip) return res.status(400).json({ error: 'IP 주소가 필요합니다.' });
+        
+        let domains = [];
+        let errorType = null;
+        let usedFallback = false;
+        
+        try {
+            // 1차 시도: HackerTarget (Vercel 서버에서 직접 호출)
+            // fetch API는 Node.js 18 이상(Vercel 기본 환경)에서 내장 지원됩니다.
+            let htRes = await fetch(`https://api.hackertarget.com/reverseiplookup/?q=${ip}`);
+            let htText = await htRes.text();
+            let parsed = htText.split('\n').map(d => d.trim()).filter(d => d);
+            
+            if (parsed.length > 0 && parsed[0].toLowerCase().includes('api count')) {
+                throw new Error("HT_LIMIT");
+            } else if (parsed.length > 0 && (parsed[0].toLowerCase().includes('no dns') || parsed[0].toLowerCase().includes('error'))) {
+                errorType = 'nodata';
+            } else {
+                domains = parsed;
+            }
+        } catch (e) {
+            // 2차 시도: Robtex (서버 대 서버 통신이므로 CORS 차단이 발생하지 않음)
+            try {
+                let robRes = await fetch(`https://freeapi.robtex.com/ipquery/${ip}`);
+                let robData = await robRes.json();
+                
+                if (robData && robData.pasv && robData.pasv.length > 0) {
+                    domains = [...new Set(robData.pasv.map(item => item.o))];
+                    usedFallback = true;
+                } else {
+                    errorType = 'nodata';
+                }
+            } catch (fallbackErr) {
+                errorType = (e.message === "HT_LIMIT") ? 'limit' : 'error';
+            }
+        }
+        
+        return res.status(200).json({ domains, errorType, usedFallback });
+    }
+
+    // ==========================================
+    // [기능 2] 포트 스캔 및 웹 서비스 확인 로직
+    // ==========================================
     if (!domain || !port) {
         return res.status(400).json({ error: '도메인과 포트 정보가 필요합니다.' });
     }
 
-    // 2. 포트 오픈 여부 확인 (TCP Socket)
     const checkTCP = (host, targetPort) => {
         return new Promise((resolve) => {
             const socket = new net.Socket();
-            socket.setTimeout(3000); // 3초 타임아웃
-            socket.on('connect', () => {
-                socket.destroy();
-                resolve(true); // 포트 열림
-            });
-            socket.on('timeout', () => {
-                socket.destroy();
-                resolve(false); // 포트 닫힘 (타임아웃)
-            });
-            socket.on('error', () => {
-                socket.destroy();
-                resolve(false); // 연결 거부 등
-            });
+            socket.setTimeout(3000); 
+            socket.on('connect', () => { socket.destroy(); resolve(true); });
+            socket.on('timeout', () => { socket.destroy(); resolve(false); });
+            socket.on('error', () => { socket.destroy(); resolve(false); });
             socket.connect(targetPort, host);
         });
     };
 
-    // 3. 웹 서비스 여부 확인 (HTTP/HTTPS HEAD 요청)
     const checkWeb = (scheme, host, targetPort) => {
         return new Promise((resolve) => {
             const client = scheme === 'https' ? https : http;
@@ -40,7 +75,7 @@ export default async function handler(req, res) {
                 host: host,
                 port: targetPort,
                 timeout: 3000,
-                rejectUnauthorized: false // 인증서 에러 무시 (스캔 목적)
+                rejectUnauthorized: false
             }, (response) => {
                 resolve({ isWeb: true, statusCode: response.statusCode });
             });
@@ -51,7 +86,6 @@ export default async function handler(req, res) {
     };
 
     try {
-        // TCP 포트가 열려있는지 먼저 확인
         const isOpen = await checkTCP(domain, port);
         
         if (!isOpen) {
@@ -62,11 +96,9 @@ export default async function handler(req, res) {
             });
         }
 
-        // 포트가 열려있다면 웹 서비스인지 확인
         let scheme = port === '443' ? 'https' : 'http';
         let webResult = await checkWeb(scheme, domain, port);
 
-        // 기본 scheme으로 실패시 반대 scheme 시도 (예: 8080포트가 https일 수도 있으므로)
         if (!webResult.isWeb && port !== '80' && port !== '443') {
             const altScheme = scheme === 'https' ? 'http' : 'https';
             webResult = await checkWeb(altScheme, domain, port);
