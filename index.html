@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>도메인/IP 포트 스캐너 (가상 호스트 자동 우회)</title>
+    <title>도메인/IP 포트 스캐너 (백엔드 우회)</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; padding: 20px; display: flex; justify-content: center; margin: 0; }
         .container { background-color: #fff; padding: 30px; border-radius: 10px; width: 100%; max-width: 800px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
@@ -52,12 +52,11 @@
     
     <button id="scanBtn" class="main-btn">점검 시작</button>
     <div id="resultsContainer"></div>
-    
     <button id="copyAllBtn" class="main-btn">📋 전체 점검 결과 텍스트로 복사</button>
     
     <div class="note">
-        * 가상 호스트(도메인) 조회 시 1차 API 제한이 걸리면 자동으로 2차 대체 API(Robtex)를 호출합니다.<br>
-        * 모든 점검이 끝나면 하단의 버튼을 통해 결과를 메모장 등에 복사할 수 있습니다.
+        * 가상 호스트 조회는 Vercel 백엔드 서버를 통해 수행되어 보안 정책(CORS)과 IP 제한을 효과적으로 우회합니다.<br>
+        * 1차 API(HackerTarget) 실패 시 백엔드에서 2차 API(Robtex)로 자동 전환하여 결과를 반환합니다.
     </div>
 </div>
 
@@ -118,7 +117,7 @@
             const tbody = document.getElementById(`tbody-${uniqueId}`);
             const infoSpan = document.getElementById(`info-${uniqueId}`);
 
-            // 1. IP 또는 도메인 정보 조회
+            // 1. IP / 도메인 / 가상 호스트 조회
             if (isIp) {
                 infoSpan.innerText = 'IP 점검 중';
                 let vhostTr = document.createElement('tr');
@@ -135,51 +134,29 @@
                     fetchErrorType = vhostCache[targetName].errorType;
                     usedFallback = vhostCache[targetName].usedFallback;
                 } else {
-                    vhostTr.innerHTML = `<td colspan="3" style="background-color:#fbfcfc; color:#555;">🔍 연결된 도메인(가상 호스트) 조회 중...</td>`;
-                    
+                    vhostTr.innerHTML = `<td colspan="3" style="background-color:#fbfcfc; color:#555;">🔍 서버에서 도메인(가상 호스트) 조회 중...</td>`;
                     try {
-                        // 1차 시도: HackerTarget
-                        let htRes = await fetch(`https://api.hackertarget.com/reverseiplookup/?q=${targetName}`);
-                        let htText = await htRes.text();
-                        let parsed = htText.split('\n').map(d => d.trim()).filter(d => d);
-
-                        if (parsed.length > 0 && parsed[0].toLowerCase().includes('api count')) {
-                            // 제공량 초과 시 에러를 던져 대체 API 로직으로 넘김
-                            throw new Error("HT_LIMIT");
-                        } else if (parsed.length > 0 && (parsed[0].toLowerCase().includes('no dns') || parsed[0].toLowerCase().includes('error'))) {
-                            fetchErrorType = 'nodata';
-                        } else {
-                            domains = parsed;
-                        }
+                        // 프론트엔드가 아닌 "내 Vercel 백엔드"로 가상 호스트 조회 요청
+                        let apiRes = await fetch(`/api/scan?type=vhost&ip=${targetName}`);
+                        let apiData = await apiRes.json();
+                        
+                        domains = apiData.domains;
+                        fetchErrorType = apiData.errorType;
+                        usedFallback = apiData.usedFallback;
+                        
+                        vhostCache[targetName] = { domains, errorType: fetchErrorType, usedFallback };
                     } catch (e) {
-                        // 2차 시도: Robtex Free API (대체 API)
-                        try {
-                            vhostTr.innerHTML = `<td colspan="3" style="background-color:#fef9e7; color:#d35400;">⚠️ 1차 한도 초과, 대체 API(Robtex)로 우회 조회 중...</td>`;
-                            let robRes = await fetch(`https://freeapi.robtex.com/ipquery/${targetName}`);
-                            let robData = await robRes.json();
-                            
-                            if (robData && robData.pasv && robData.pasv.length > 0) {
-                                // 대체 API에서 가져온 도메인 중복 제거
-                                domains = [...new Set(robData.pasv.map(item => item.o))];
-                                usedFallback = true;
-                            } else {
-                                fetchErrorType = 'nodata';
-                            }
-                        } catch (fallbackErr) {
-                            // 대체 API마저 실패한 경우 (진짜 에러)
-                            fetchErrorType = (e.message === "HT_LIMIT") ? 'limit' : 'error';
-                        }
+                        fetchErrorType = 'error';
                     }
-                    // 결과 캐시에 저장 (대체 API 사용 여부 포함)
-                    vhostCache[targetName] = { domains: domains, errorType: fetchErrorType, usedFallback: usedFallback };
                 }
 
+                // UI 렌더링
                 if (fetchErrorType === 'limit') {
-                    vhostTr.innerHTML = `<td colspan="3" style="background-color:#fdf2e9; color:#e67e22;">⚠️ 도메인 조회 한도 초과 (1차, 2차 API 모두 소진 또는 실패)</td>`;
+                    vhostTr.innerHTML = `<td colspan="3" style="background-color:#fdf2e9; color:#e67e22;">⚠️ 도메인 조회 한도 초과 (모든 백엔드 API 소진)</td>`;
                 } else if (fetchErrorType === 'nodata') {
                     vhostTr.innerHTML = `<td colspan="3" style="background-color:#f9ebea; color:#7f8c8d;">🔗 연결된 도메인 없음</td>`;
                 } else if (fetchErrorType === 'error') {
-                    vhostTr.innerHTML = `<td colspan="3" style="background-color:#f9ebea; color:#c0392b;">⚠️ 도메인 조회 실패 (네트워크 오류)</td>`;
+                    vhostTr.innerHTML = `<td colspan="3" style="background-color:#f9ebea; color:#c0392b;">⚠️ 서버와 통신 중 오류가 발생했습니다.</td>`;
                 } else if (domains.length > 0) {
                     let limit = 10;
                     let displayDomains = domains.slice(0, limit).join(', ');
@@ -219,7 +196,7 @@
                 }
             }
 
-            // 2. 포트 스캔
+            // 2. 포트 스캔 (기존과 동일하게 Vercel 백엔드 호출)
             for (let port of ports) {
                 let portId = `${uniqueId}-${port}`;
                 let tr = document.createElement('tr');
