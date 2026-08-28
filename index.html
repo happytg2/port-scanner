@@ -3,38 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>도메인/IP 포트 스캐너 (가상 호스트 조회2)</title>
+    <title>도메인/IP 포트 스캐너 (결과 복사 지원)</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; padding: 20px; display: flex; justify-content: center; margin: 0; }
         .container { background-color: #fff; padding: 30px; border-radius: 10px; width: 100%; max-width: 800px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         h2 { margin-top: 0; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
         textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; resize: vertical; margin-bottom: 15px; font-family: 'Consolas', monospace; }
-        button { background-color: #3498db; color: white; border: none; padding: 12px 20px; border-radius: 5px; cursor: pointer; width: 100%; font-weight: bold; font-size: 16px; transition: background-color 0.3s; }
-        button:disabled { background-color: #95a5a6; cursor: not-allowed; }
+        
+        button.main-btn { background-color: #3498db; color: white; border: none; padding: 12px 20px; border-radius: 5px; cursor: pointer; width: 100%; font-weight: bold; font-size: 16px; transition: background-color 0.3s; }
+        button.main-btn:hover { background-color: #2980b9; }
+        button.main-btn:disabled { background-color: #95a5a6; cursor: not-allowed; }
+        
+        /* 전체 복사 버튼 스타일 */
+        button#copyAllBtn { background-color: #27ae60; margin-top: 20px; display: none; }
+        button#copyAllBtn:hover { background-color: #219150; }
+        
         .domain-result { margin-top: 25px; border: 1px solid #dcdde1; border-radius: 8px; overflow: hidden; }
         .domain-header { background-color: #e8f4f8; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #dcdde1; }
         .domain-title { font-weight: bold; font-size: 16px; color: #2c3e50; }
         .domain-ip { font-size: 14px; font-weight: bold; color: #2980b9; }
+        
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         th, td { padding: 12px 15px; border-bottom: 1px solid #eee; text-align: left; font-size: 14px; word-wrap: break-word; }
         th { background-color: #f8f9fa; color: #555; }
+        
         .status-open { color: #27ae60; font-weight: bold; }
         .status-closed { color: #e74c3c; font-weight: bold; }
         .status-loading { color: #f39c12; font-weight: bold; }
         .note { font-size: 12px; color: #7f8c8d; margin-top: 15px; line-height: 1.5; }
-        .vhost-row td { font-size: 13px; line-height: 1.4; }
         
-        /* 복사 버튼 전용 스타일 */
+        .vhost-row td { font-size: 13px; line-height: 1.4; position: relative; }
+        
+        /* 가상 호스트 개별 복사 버튼 */
         .copy-btn {
-            background-color: #1abc9c;
-            width: auto;
-            padding: 6px 12px;
-            font-size: 12px;
-            border-radius: 4px;
-            margin-left: 10px;
-            white-space: nowrap;
+            background-color: #16a085; color: white; border: none; padding: 5px 10px; 
+            font-size: 12px; border-radius: 4px; cursor: pointer; float: right; 
+            font-weight: bold; transition: background-color 0.2s;
         }
-        .copy-btn:hover { background-color: #16a085; }
+        .copy-btn:hover { background-color: #117a65; }
     </style>
 </head>
 <body>
@@ -45,23 +51,26 @@
     <label style="display:block; font-weight:bold; margin-bottom:8px;">점검 대상 입력 (도메인 또는 IP, 포트)</label>
     <textarea id="inputData" rows="6" placeholder="naver.com&#10;123.41.26.97, 80, 443&#10;example.com, 3306"></textarea>
     
-    <button id="scanBtn">점검 시작</button>
+    <button id="scanBtn" class="main-btn">점검 시작</button>
     <div id="resultsContainer"></div>
     
+    <!-- 전체 결과 복사 버튼 (점검 완료 시 나타남) -->
+    <button id="copyAllBtn" class="main-btn">📋 전체 점검 결과 텍스트로 복사</button>
+    
     <div class="note">
-        * IP 주소 입력 시 HackerTarget API를 통해 해당 IP를 사용 중인 가상 호스트(도메인) 목록을 조회합니다.<br>
-        <span style="color:#e74c3c;">* 주의: HackerTarget 무료 API는 보안상 IP당 하루 50회의 조회 제한(Rate Limit)이 있습니다.</span>
+        * 가상 호스트 결과는 IP 입력 시에만 조회됩니다.<br>
+        * 모든 점검이 끝나면 하단의 버튼을 통해 결과를 복사하여 메모장 등에 붙여넣을 수 있습니다.
     </div>
 </div>
 
 <script>
-    // IP별 HackerTarget 조회 결과를 저장해두는 캐시(Cache) 저장소
     const vhostCache = {};
 
     document.getElementById('scanBtn').addEventListener('click', async () => {
         const scanBtn = document.getElementById('scanBtn');
         const inputData = document.getElementById('inputData').value;
         const resultsContainer = document.getElementById('resultsContainer');
+        const copyAllBtn = document.getElementById('copyAllBtn');
         
         const lines = inputData.split('\n');
         let targets = [];
@@ -86,6 +95,7 @@
         resultsContainer.innerHTML = '';
         scanBtn.disabled = true;
         scanBtn.innerText = '검사 진행 중...';
+        copyAllBtn.style.display = 'none'; // 검사 시작 시 복사 버튼 숨김
 
         const processTarget = async (target, index) => {
             const { targetName, ports } = target;
@@ -110,106 +120,71 @@
             const tbody = document.getElementById(`tbody-${uniqueId}`);
             const infoSpan = document.getElementById(`info-${uniqueId}`);
 
-            // 1. IP 또는 도메인 관련 정보 조회
+            // 1. IP 또는 도메인 정보 조회
             if (isIp) {
                 infoSpan.innerText = 'IP 점검 중';
-                
                 let vhostTr = document.createElement('tr');
                 vhostTr.className = 'vhost-row';
                 tbody.appendChild(vhostTr);
 
                 let domains = [];
-                let isError = false;
-                let errorMessage = "";
+                let fetchErrorType = null; 
 
-                // 캐시에 동일한 IP 결과가 있는지 확인
                 if (vhostCache[targetName]) {
+                    vhostTr.innerHTML = `<td colspan="3" style="background-color:#fbfcfc; color:#555;">🔍 캐시된 가상 호스트 정보 불러오는 중...</td>`;
                     domains = vhostCache[targetName].domains;
-                    isError = vhostCache[targetName].isError;
-                    errorMessage = vhostCache[targetName].errorMessage;
+                    fetchErrorType = vhostCache[targetName].errorType;
                 } else {
-                    // 캐시에 없으면 API 호출
-                    vhostTr.innerHTML = `<td colspan="3" style="background-color:#fbfcfc; color:#555;">🔍 동일 IP 연결 도메인(가상 호스트) 조회 중...</td>`;
+                    vhostTr.innerHTML = `<td colspan="3" style="background-color:#fbfcfc; color:#555;">🔍 연결된 도메인(가상 호스트) 조회 중...</td>`;
                     try {
                         let htRes = await fetch(`https://api.hackertarget.com/reverseiplookup/?q=${targetName}`);
                         let htText = await htRes.text();
-                        let fetchedDomains = htText.split('\n').map(d => d.trim()).filter(d => d);
+                        let parsed = htText.split('\n').map(d => d.trim()).filter(d => d);
 
-                        if (fetchedDomains.length > 0 && fetchedDomains[0].toLowerCase().includes('api count')) {
-                            isError = true;
-                            errorMessage = "⚠️ 도메인 조회 한도 초과 (HackerTarget 무료 API 일일 제공량 소진)";
-                        } 
-                        else if (fetchedDomains.length > 0 && (fetchedDomains[0].toLowerCase().includes('no dns') || fetchedDomains[0].toLowerCase().includes('error'))) {
-                            isError = true;
-                            errorMessage = "🔗 연결된 도메인 없음 (데이터베이스에 기록 없음)";
-                        } 
-                        else {
-                            domains = fetchedDomains;
+                        if (parsed.length > 0 && parsed[0].toLowerCase().includes('api count')) {
+                            fetchErrorType = 'limit';
+                        } else if (parsed.length > 0 && (parsed[0].toLowerCase().includes('no dns') || parsed[0].toLowerCase().includes('error'))) {
+                            fetchErrorType = 'nodata';
+                        } else {
+                            domains = parsed;
                         }
-                        // 조회된 결과 캐시에 저장
-                        vhostCache[targetName] = { domains, isError, errorMessage };
+                        vhostCache[targetName] = { domains: domains, errorType: fetchErrorType };
                     } catch (e) {
-                        isError = true;
-                        errorMessage = "⚠️ 도메인 조회 실패 (네트워크 오류)";
-                        vhostCache[targetName] = { domains: [], isError, errorMessage };
+                        fetchErrorType = 'error';
                     }
                 }
 
-                // 결과 화면 렌더링
-                if (isError) {
-                    let bgColor = errorMessage.includes('한도 초과') ? '#fdf2e9' : '#f9ebea';
-                    let fontColor = errorMessage.includes('한도 초과') ? '#e67e22' : (errorMessage.includes('없음') ? '#7f8c8d' : '#c0392b');
-                    vhostTr.innerHTML = `<td colspan="3" style="background-color:${bgColor}; color:${fontColor};">${errorMessage}</td>`;
-                } 
-                else if (domains.length > 0) {
+                if (fetchErrorType === 'limit') {
+                    vhostTr.innerHTML = `<td colspan="3" style="background-color:#fdf2e9; color:#e67e22;">⚠️ 도메인 조회 한도 초과 (HackerTarget 일일 제공량 소진)</td>`;
+                } else if (fetchErrorType === 'nodata') {
+                    vhostTr.innerHTML = `<td colspan="3" style="background-color:#f9ebea; color:#7f8c8d;">🔗 연결된 도메인 없음</td>`;
+                } else if (fetchErrorType === 'error') {
+                    vhostTr.innerHTML = `<td colspan="3" style="background-color:#f9ebea; color:#c0392b;">⚠️ 도메인 조회 실패 (네트워크 오류)</td>`;
+                } else if (domains.length > 0) {
                     let limit = 10;
                     let displayDomains = domains.slice(0, limit).join(', ');
                     if (domains.length > limit) displayDomains += ` <br><span style="color:#7f8c8d;">... (외 ${domains.length - limit}개 더 있음)</span>`;
                     
-                    let copyBtnId = `copyBtn-${uniqueId}`;
-                    
                     vhostTr.innerHTML = `
                         <td colspan="3" style="background-color:#e8f8f5; color:#16a085;">
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                                <div>
-                                    <strong>🔗 연결된 도메인 (${domains.length}개 발견):</strong><br>
-                                    ${displayDomains}
-                                </div>
-                                <button id="${copyBtnId}" class="copy-btn">📋 전체 복사</button>
-                            </div>
-                        </td>`;
-                    
-                    // 복사 버튼 이벤트 바인딩
-                    setTimeout(() => {
-                        const copyBtn = document.getElementById(copyBtnId);
-                        if (copyBtn) {
-                            copyBtn.addEventListener('click', () => {
-                                // 줄바꿈(\n) 단위로 도메인 목록을 복사
-                                navigator.clipboard.writeText(domains.join('\n')).then(() => {
-                                    copyBtn.innerText = '✅ 복사 완료';
-                                    copyBtn.style.backgroundColor = '#27ae60';
-                                    setTimeout(() => {
-                                        copyBtn.innerText = '📋 전체 복사';
-                                        copyBtn.style.backgroundColor = '#1abc9c';
-                                    }, 2000); // 2초 뒤 원상복구
-                                }).catch(err => {
-                                    alert('복사에 실패했습니다. 브라우저 권한을 확인해주세요.');
-                                });
-                            });
-                        }
-                    }, 0);
+                            <button class="copy-btn" id="copyBtn-${uniqueId}">도메인만 복사</button>
+                            <strong>🔗 연결된 도메인 (${domains.length}개 발견):</strong><br>${displayDomains}
+                        </td>
+                    `;
+                    document.getElementById(`copyBtn-${uniqueId}`).addEventListener('click', (e) => {
+                        navigator.clipboard.writeText(domains.join('\n'));
+                        e.target.innerText = '✅ 복사 완료';
+                        e.target.style.backgroundColor = '#27ae60';
+                        setTimeout(() => { e.target.innerText = '도메인만 복사'; e.target.style.backgroundColor = '#16a085'; }, 2000);
+                    });
                 }
-
             } else {
-                // 도메인 입력 시 -> 기존처럼 A 레코드(IP) 조회
                 try {
                     let res = await fetch(`https://dns.google/resolve?name=${targetName}&type=A`);
                     let data = await res.json();
                     let aRecord = data.Answer ? data.Answer.find(ans => ans.type === 1) : null;
-                    
-                    if (aRecord) {
-                        infoSpan.innerText = `IP: ${aRecord.data}`;
-                    } else {
+                    if (aRecord) infoSpan.innerText = `IP: ${aRecord.data}`;
+                    else {
                         infoSpan.innerText = 'IP 조회 실패';
                         infoSpan.style.color = '#e74c3c';
                         tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:red;">IP를 찾을 수 없어 포트 검사를 건너뜁니다.</td></tr>`;
@@ -222,7 +197,7 @@
                 }
             }
 
-            // 2. 포트 스캔 (Vercel API 통신)
+            // 2. 포트 스캔
             for (let port of ports) {
                 let portId = `${uniqueId}-${port}`;
                 let tr = document.createElement('tr');
@@ -236,7 +211,6 @@
                 try {
                     let response = await fetch(`/api/scan?domain=${targetName}&port=${port}`);
                     let result = await response.json();
-
                     let statusTd = document.getElementById(`status-${portId}`);
                     statusTd.innerText = result.status;
                     statusTd.className = result.isOpen ? "status-open" : "status-closed";
@@ -248,12 +222,57 @@
             }
         };
 
+        // 순차 점검 실행
         for (let i = 0; i < targets.length; i++) {
             await processTarget(targets[i], i);
         }
 
+        // 점검 완료 시 상태 변경 및 전체 복사 버튼 활성화
         scanBtn.innerText = '점검 완료 (다시 검사하기)';
         scanBtn.disabled = false;
+        copyAllBtn.style.display = 'block';
+    });
+
+    // 전체 점검 결과 복사 이벤트
+    document.getElementById('copyAllBtn').addEventListener('click', () => {
+        const copyAllBtn = document.getElementById('copyAllBtn');
+        let resultText = "========================================\n";
+        resultText += "           🌐 포트 점검 결과\n";
+        resultText += "========================================\n\n";
+
+        const blocks = document.querySelectorAll('.domain-result');
+        blocks.forEach(block => {
+            const title = block.querySelector('.domain-title').innerText;
+            const ipInfo = block.querySelector('.domain-ip').innerText;
+            resultText += `[대상] ${title} (${ipInfo})\n`;
+
+            const rows = block.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                if(row.classList.contains('vhost-row')) {
+                    // 버튼 텍스트를 제거하고 가상호스트 정보만 추출
+                    let vhostText = row.innerText.replace('도메인만 복사', '').replace('✅ 복사 완료', '').replace(/\n+/g, ' ').trim();
+                    resultText += `  └─ ${vhostText}\n`;
+                } else {
+                    const cols = row.querySelectorAll('td');
+                    if(cols.length === 3) {
+                        resultText += `  - 포트 ${cols[0].innerText.padEnd(5)} : ${cols[1].innerText} / ${cols[2].innerText}\n`;
+                    } else {
+                        resultText += `  - ${row.innerText}\n`;
+                    }
+                }
+            });
+            resultText += `\n`;
+        });
+
+        navigator.clipboard.writeText(resultText).then(() => {
+            const originalText = copyAllBtn.innerText;
+            copyAllBtn.innerText = '✅ 클립보드에 전체 결과가 복사되었습니다!';
+            copyAllBtn.style.backgroundColor = '#1e8449';
+            setTimeout(() => { 
+                copyAllBtn.innerText = originalText; 
+                copyAllBtn.style.backgroundColor = '#27ae60'; 
+            }, 2000);
+        }).catch(err => alert('복사에 실패했습니다.'));
     });
 </script>
 </body>
