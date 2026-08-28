@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>도메인/IP 포트 스캐너 (결과 복사 지원)</title>
+    <title>도메인/IP 포트 스캐너 (가상 호스트 자동 우회)</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; padding: 20px; display: flex; justify-content: center; margin: 0; }
         .container { background-color: #fff; padding: 30px; border-radius: 10px; width: 100%; max-width: 800px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
@@ -14,7 +14,6 @@
         button.main-btn:hover { background-color: #2980b9; }
         button.main-btn:disabled { background-color: #95a5a6; cursor: not-allowed; }
         
-        /* 전체 복사 버튼 스타일 */
         button#copyAllBtn { background-color: #27ae60; margin-top: 20px; display: none; }
         button#copyAllBtn:hover { background-color: #219150; }
         
@@ -34,13 +33,13 @@
         
         .vhost-row td { font-size: 13px; line-height: 1.4; position: relative; }
         
-        /* 가상 호스트 개별 복사 버튼 */
         .copy-btn {
             background-color: #16a085; color: white; border: none; padding: 5px 10px; 
             font-size: 12px; border-radius: 4px; cursor: pointer; float: right; 
             font-weight: bold; transition: background-color 0.2s;
         }
         .copy-btn:hover { background-color: #117a65; }
+        .fallback-badge { font-size: 11px; background-color: #f1c40f; color: #8e44ad; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-left: 8px; }
     </style>
 </head>
 <body>
@@ -54,12 +53,11 @@
     <button id="scanBtn" class="main-btn">점검 시작</button>
     <div id="resultsContainer"></div>
     
-    <!-- 전체 결과 복사 버튼 (점검 완료 시 나타남) -->
     <button id="copyAllBtn" class="main-btn">📋 전체 점검 결과 텍스트로 복사</button>
     
     <div class="note">
-        * 가상 호스트 결과는 IP 입력 시에만 조회됩니다.<br>
-        * 모든 점검이 끝나면 하단의 버튼을 통해 결과를 복사하여 메모장 등에 붙여넣을 수 있습니다.
+        * 가상 호스트(도메인) 조회 시 1차 API 제한이 걸리면 자동으로 2차 대체 API(Robtex)를 호출합니다.<br>
+        * 모든 점검이 끝나면 하단의 버튼을 통해 결과를 메모장 등에 복사할 수 있습니다.
     </div>
 </div>
 
@@ -95,7 +93,7 @@
         resultsContainer.innerHTML = '';
         scanBtn.disabled = true;
         scanBtn.innerText = '검사 진행 중...';
-        copyAllBtn.style.display = 'none'; // 검사 시작 시 복사 버튼 숨김
+        copyAllBtn.style.display = 'none';
 
         const processTarget = async (target, index) => {
             const { targetName, ports } = target;
@@ -129,33 +127,55 @@
 
                 let domains = [];
                 let fetchErrorType = null; 
+                let usedFallback = false;
 
                 if (vhostCache[targetName]) {
                     vhostTr.innerHTML = `<td colspan="3" style="background-color:#fbfcfc; color:#555;">🔍 캐시된 가상 호스트 정보 불러오는 중...</td>`;
                     domains = vhostCache[targetName].domains;
                     fetchErrorType = vhostCache[targetName].errorType;
+                    usedFallback = vhostCache[targetName].usedFallback;
                 } else {
                     vhostTr.innerHTML = `<td colspan="3" style="background-color:#fbfcfc; color:#555;">🔍 연결된 도메인(가상 호스트) 조회 중...</td>`;
+                    
                     try {
+                        // 1차 시도: HackerTarget
                         let htRes = await fetch(`https://api.hackertarget.com/reverseiplookup/?q=${targetName}`);
                         let htText = await htRes.text();
                         let parsed = htText.split('\n').map(d => d.trim()).filter(d => d);
 
                         if (parsed.length > 0 && parsed[0].toLowerCase().includes('api count')) {
-                            fetchErrorType = 'limit';
+                            // 제공량 초과 시 에러를 던져 대체 API 로직으로 넘김
+                            throw new Error("HT_LIMIT");
                         } else if (parsed.length > 0 && (parsed[0].toLowerCase().includes('no dns') || parsed[0].toLowerCase().includes('error'))) {
                             fetchErrorType = 'nodata';
                         } else {
                             domains = parsed;
                         }
-                        vhostCache[targetName] = { domains: domains, errorType: fetchErrorType };
                     } catch (e) {
-                        fetchErrorType = 'error';
+                        // 2차 시도: Robtex Free API (대체 API)
+                        try {
+                            vhostTr.innerHTML = `<td colspan="3" style="background-color:#fef9e7; color:#d35400;">⚠️ 1차 한도 초과, 대체 API(Robtex)로 우회 조회 중...</td>`;
+                            let robRes = await fetch(`https://freeapi.robtex.com/ipquery/${targetName}`);
+                            let robData = await robRes.json();
+                            
+                            if (robData && robData.pasv && robData.pasv.length > 0) {
+                                // 대체 API에서 가져온 도메인 중복 제거
+                                domains = [...new Set(robData.pasv.map(item => item.o))];
+                                usedFallback = true;
+                            } else {
+                                fetchErrorType = 'nodata';
+                            }
+                        } catch (fallbackErr) {
+                            // 대체 API마저 실패한 경우 (진짜 에러)
+                            fetchErrorType = (e.message === "HT_LIMIT") ? 'limit' : 'error';
+                        }
                     }
+                    // 결과 캐시에 저장 (대체 API 사용 여부 포함)
+                    vhostCache[targetName] = { domains: domains, errorType: fetchErrorType, usedFallback: usedFallback };
                 }
 
                 if (fetchErrorType === 'limit') {
-                    vhostTr.innerHTML = `<td colspan="3" style="background-color:#fdf2e9; color:#e67e22;">⚠️ 도메인 조회 한도 초과 (HackerTarget 일일 제공량 소진)</td>`;
+                    vhostTr.innerHTML = `<td colspan="3" style="background-color:#fdf2e9; color:#e67e22;">⚠️ 도메인 조회 한도 초과 (1차, 2차 API 모두 소진 또는 실패)</td>`;
                 } else if (fetchErrorType === 'nodata') {
                     vhostTr.innerHTML = `<td colspan="3" style="background-color:#f9ebea; color:#7f8c8d;">🔗 연결된 도메인 없음</td>`;
                 } else if (fetchErrorType === 'error') {
@@ -165,10 +185,12 @@
                     let displayDomains = domains.slice(0, limit).join(', ');
                     if (domains.length > limit) displayDomains += ` <br><span style="color:#7f8c8d;">... (외 ${domains.length - limit}개 더 있음)</span>`;
                     
+                    let fallbackBadge = usedFallback ? `<span class="fallback-badge">대체 API 적용됨</span>` : "";
+
                     vhostTr.innerHTML = `
                         <td colspan="3" style="background-color:#e8f8f5; color:#16a085;">
                             <button class="copy-btn" id="copyBtn-${uniqueId}">도메인만 복사</button>
-                            <strong>🔗 연결된 도메인 (${domains.length}개 발견):</strong><br>${displayDomains}
+                            <strong>🔗 연결된 도메인 (${domains.length}개 발견) ${fallbackBadge}:</strong><br>${displayDomains}
                         </td>
                     `;
                     document.getElementById(`copyBtn-${uniqueId}`).addEventListener('click', (e) => {
@@ -222,12 +244,10 @@
             }
         };
 
-        // 순차 점검 실행
         for (let i = 0; i < targets.length; i++) {
             await processTarget(targets[i], i);
         }
 
-        // 점검 완료 시 상태 변경 및 전체 복사 버튼 활성화
         scanBtn.innerText = '점검 완료 (다시 검사하기)';
         scanBtn.disabled = false;
         copyAllBtn.style.display = 'block';
@@ -249,8 +269,7 @@
             const rows = block.querySelectorAll('tbody tr');
             rows.forEach(row => {
                 if(row.classList.contains('vhost-row')) {
-                    // 버튼 텍스트를 제거하고 가상호스트 정보만 추출
-                    let vhostText = row.innerText.replace('도메인만 복사', '').replace('✅ 복사 완료', '').replace(/\n+/g, ' ').trim();
+                    let vhostText = row.innerText.replace('도메인만 복사', '').replace('✅ 복사 완료', '').replace('대체 API 적용됨', '').replace(/\n+/g, ' ').trim();
                     resultText += `  └─ ${vhostText}\n`;
                 } else {
                     const cols = row.querySelectorAll('td');
