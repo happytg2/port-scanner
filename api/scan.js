@@ -16,8 +16,7 @@ export default async function handler(req, res) {
         let usedFallback = false;
         
         try {
-            // 1차 시도: HackerTarget (Vercel 서버에서 직접 호출)
-            // fetch API는 Node.js 18 이상(Vercel 기본 환경)에서 내장 지원됩니다.
+            // 1차 시도: HackerTarget
             let htRes = await fetch(`https://api.hackertarget.com/reverseiplookup/?q=${ip}`);
             let htText = await htRes.text();
             let parsed = htText.split('\n').map(d => d.trim()).filter(d => d);
@@ -30,7 +29,7 @@ export default async function handler(req, res) {
                 domains = parsed;
             }
         } catch (e) {
-            // 2차 시도: Robtex (서버 대 서버 통신이므로 CORS 차단이 발생하지 않음)
+            // 2차 시도: Robtex
             try {
                 let robRes = await fetch(`https://freeapi.robtex.com/ipquery/${ip}`);
                 let robData = await robRes.json();
@@ -56,6 +55,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: '도메인과 포트 정보가 필요합니다.' });
     }
 
+    // TCP 소켓 통신 타임아웃 6000ms (6초) 설정
     const checkTCP = (host, targetPort) => {
         return new Promise((resolve) => {
             const socket = new net.Socket();
@@ -67,6 +67,7 @@ export default async function handler(req, res) {
         });
     };
 
+    // 웹 HTTP/HTTPS 응답 타임아웃 6000ms (6초) 설정
     const checkWeb = (scheme, host, targetPort) => {
         return new Promise((resolve) => {
             const client = scheme === 'https' ? https : http;
@@ -74,7 +75,7 @@ export default async function handler(req, res) {
                 method: 'HEAD',
                 host: host,
                 port: targetPort,
-                timeout: 3000,
+                timeout: 6000,
                 rejectUnauthorized: false
             }, (response) => {
                 resolve({ isWeb: true, statusCode: response.statusCode });
@@ -91,7 +92,7 @@ export default async function handler(req, res) {
         if (!isOpen) {
             return res.status(200).json({
                 status: "접속 불가 (Closed)",
-                detail: "응답 없음 (포트 닫힘 또는 차단됨)",
+                detail: "응답 없음 (포트 닫힘, 차단됨 또는 타임아웃)",
                 isOpen: false
             });
         }
