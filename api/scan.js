@@ -59,7 +59,7 @@ export default async function handler(req, res) {
     const checkTCP = (host, targetPort) => {
         return new Promise((resolve) => {
             const socket = new net.Socket();
-            socket.setTimeout(3000); 
+            socket.setTimeout(6000); 
             socket.on('connect', () => { socket.destroy(); resolve(true); });
             socket.on('timeout', () => { socket.destroy(); resolve(false); });
             socket.on('error', () => { socket.destroy(); resolve(false); });
