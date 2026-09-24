@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>법령 통합 코드 자동화 - 제2조 정의 교차 분석</title>
+<style>
+    body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; line-height: 1.6; color: #333; padding: 20px; background-color: #f4f6f9; }
+    .container { max-width: 1000px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    h1 { font-size: 24px; border-bottom: 2px solid #2c3e50; padding-bottom: 10px; margin-bottom: 20px; }
+    .law-link { display: inline-block; margin-bottom: 20px; font-size: 14px; color: #fff; background-color: #2980b9; padding: 8px 15px; text-decoration: none; border-radius: 4px; font-weight: bold; }
+    .law-link:hover { background-color: #34495e; }
+    .article-title { font-weight: bold; font-size: 18px; margin-bottom: 15px; color: #2c3e50; }
+    .clause { margin-bottom: 15px; padding-left: 10px; }
+    .item { margin-bottom: 10px; padding-left: 20px; }
+    .sub-item { margin-bottom: 5px; padding-left: 20px; }
+    .deleted { color: #999; text-decoration: line-through; }
+    .toggle-btn { display: inline-block; margin-top: 5px; margin-bottom: 5px; font-size: 13px; color: #d35400; cursor: pointer; background: #fdf2e9; border: 1px solid #fad7a1; padding: 4px 8px; border-radius: 4px; user-select: none; font-weight: bold; }
+    .toggle-btn:hover { background: #fae5d3; }
+    .reference-box { display: none; margin-top: 5px; margin-bottom: 15px; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #d35400; font-size: 13.5px; border-radius: 0 4px 4px 0; }
+    .reference-box strong { color: #d35400; display: block; margin-bottom: 8px; }
+    .ref-link { font-size:12px; color:#2980b9; text-decoration: underline; margin-top: 10px; display: inline-block; }
+    .tabs { display: flex; flex-wrap: wrap; border-bottom: 2px solid #ccc; margin-bottom: 20px; gap: 5px; }
+    .tab { padding: 10px 15px; cursor: pointer; background-color: #eee; border: 1px solid #ccc; border-bottom: none; border-radius: 5px 5px 0 0; font-size: 14px; }
+    .tab.active { background-color: #fff; font-weight: bold; border-top: 3px solid #2980b9; border-bottom: 2px solid #fff; margin-bottom: -2px; color: #2980b9; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+</style>
+<script>
+    function toggleReference(id) {
+        var el = document.getElementById(id);
+        if (el.style.display === "none" || el.style.display === "") {
+            el.style.display = "block";
+        } else {
+            el.style.display = "none";
+        }
+    }
+
+    function openTab(evt, tabName) {
+        var i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("tab-content");
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].style.display = "none";
+            tabcontent[i].classList.remove("active");
+        }
+        tablinks = document.getElementsByClassName("tab");
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].classList.remove("active");
+        }
+        document.getElementById(tabName).style.display = "block";
+        document.getElementById(tabName).classList.add("active");
+        evt.currentTarget.classList.add("active");
+    }
+</script>
+</head>
+<body>
+
+<div class="container">
+    <h1>주요 IT·금융 법령 제2조(정의) 통합 분석</h1>
+    
+    <div class="tabs">
+        <div class="tab active" onclick="openTab(event, 'tab-network')">정보통신망법</div>
+        <div class="tab" onclick="openTab(event, 'tab-privacy')">개인정보보호법</div>
+        <div class="tab" onclick="openTab(event, 'tab-efinance')">전자금융거래법</div>
+        <div class="tab" onclick="openTab(event, 'tab-credit')">신용정보법</div>
+        <div class="tab" onclick="openTab(event, 'tab-aml')">특정금융정보법</div>
+        <div class="tab" onclick="openTab(event, 'tab-virtual')">가상자산이용자보호법</div>
+        <div class="tab" onclick="openTab(event, 'tab-location')">위치정보법</div>
+    </div>
+
+    <!-- 1. 정보통신망법 -->
+    <div id="tab-network" class="tab-content active">
+        <a href="https://www.law.go.kr/LSW/lsInfoP.do?lsNm=정보통신망이용촉진및정보보호등에관한법률" target="_blank" class="law-link">
+            국가법령정보센터 원문 보기 (정보통신망법)
+        </a>
+        <div class="article-title">제2조(정의)</div>
+        <div class="clause">① 이 법에서 사용하는 용어의 뜻은 다음과 같다. &lt;개정 2004. 1. 29., 2007. 1. 26., 2007. 12. 21., 2008. 6. 13., 2010. 3. 22., 2014. 5. 28., 2020. 2. 4., 2020. 6. 9., 2026. 1. 6.&gt;</div>
+        
+        <div class="item">
+            1. "정보통신망"이란 「전기통신사업법」 제2조제2호에 따른 전기통신설비를 이용하거나 전기통신설비와 컴퓨터 및 컴퓨터의 이용기술을 활용하여 정보를 수집ㆍ가공ㆍ저장ㆍ검색ㆍ송신 또는 수신하는 정보통신체제를 말한다.<br>
+            <div class="toggle-btn" onclick="toggleReference('net-ref-1')">▶ [인용 법률 확인] 전기통신사업법 제2조제2호</div>
+            <div id="net-ref-1" class="reference-box">
+                <strong>[전기통신사업법] 제2조(정의)</strong>
+                2. "전기통신설비"란 전기통신을 하기 위한 기계ㆍ기구ㆍ선로 또는 그 밖에 전기통신에 필요한 설비를 말한다.<br>
+                <a href="https://www.law.go.kr/LSW/lsInfoP.do?lsNm=전기통신사업법" target="_blank" class="ref-link">전기통신사업법 원문보기</a>
+            </div>
+        </div>
+
+        <div class="item">
+            2. "정보통신서비스"란 「전기통신사업법」 제2조제6호에 따른 전기통신역무와 이를 이용하여 정보를 제공하거나 정보의 제공을 매개하는 것을 말한다.<br>
+            <div class="toggle-btn" onclick="toggleReference('net-ref-2')">▶ [인용 법률 확인] 전기통신사업법 제2조제6호</div>
+            <div id="net-ref-2" class="reference-box">
+                <strong>[전기통신사업법] 제2조(정의)</strong>
+                6. "전기통신역무"란 전기통신설비를 이용하여 타인의 통신을 매개하거나 전기통신설비를 타인의 통신용으로 제공하는 것을 말한다.
+            </div>
+        </div>
+
+        <div class="item">
+            3. "정보통신서비스 제공자"란 「전기통신사업법」 제2조제8호에 따른 전기통신사업자와 영리를 목적으로 전기통신사업자의 전기통신역무를 이용하여 정보를 제공하거나 정보의 제공을 매개하는 자를 말한다.<br>
+            <div class="toggle-btn" onclick="toggleReference('net-ref-3')">▶ [인용 법률 확인] 전기통신사업법 제2조제8호</div>
+            <div id="net-ref-3" class="reference-box">
+                <strong>[전기통신사업법] 제2조(정의)</strong>
+                8. "전기통신사업자"란 이 법에 따른 허가를 받거나 등록 또는 신고(신고가 면제된 경우를 포함한다)를 하고 전기통신역무를 제공하는 자를 말한다.
+            </div>
+        </div>
+
+        <div class="item">4. "이용자"란 정보통신서비스 제공자가 제공하는 정보통신서비스를 이용하는 자를 말한다.</div>
+        <div class="item">5. "전자문서"란 컴퓨터 등 정보처리능력을 가진 장치에 의하여 전자적인 형태로 작성되어 송수신되거나 저장된 문서형식의 자료로서 표준화된 것을 말한다.</div>
+        <div class="item deleted">6. 삭제 &lt;2020. 2. 4.&gt;</div>
+        <div class="item">7. "침해사고"란 해킹, 컴퓨터바이러스, 논리폭탄, 메일폭탄, 서비스 거부 또는 고출력 전자기파 등의 방법으로 정보통신망 또는 이와 관련된 정보시스템을 공격하는 행위를 하여 발생한 사태를 말한다.</div>
+        <div class="item deleted">8. 삭제 &lt;2015. 6. 22.&gt;</div>
+        <div class="item">9. "게시판"이란 그 명칭과 관계없이 정보통신망을 이용하여 일반에게 공개할 목적으로 부호ㆍ문자ㆍ음성ㆍ음향ㆍ화상ㆍ동영상 등의 정보를 이용자가 게재할 수 있는 컴퓨터 프로그램이나 기술적 장치를 말한다.</div>
+        <div class="item">10. "통신과금서비스"란 정보통신서비스로서 다음 각 목의 업무를 말한다.
+            <div class="sub-item">가. 타인이 판매ㆍ제공하는 재화 또는 용역(이하 "재화등"이라 한다)의 대가를 자신이 제공하는 전기통신역무의 요금과 함께 청구ㆍ징수하는 업무</div>
+            <div class="sub-item">나. 타인이 판매ㆍ제공하는 재화등의 대가가 가목의 업무를 제공하는 자의 전기통신역무의 요금과 함께 청구ㆍ징수되도록 거래정보를 전자적으로 송수신하는 것 또는 그 대가의 정산을 대행하거나 매개하는 업무</div>
+        </div>
+        <div class="item">11. "통신과금서비스제공자"란 제53조에 따라 등록을 하고 통신과금서비스를 제공하는 자를 말한다.</div>
+        <div class="item">12. "통신과금서비스이용자"란 통신과금서비스제공자로부터 통신과금서비스를 이용하여 재화등을 구입ㆍ이용하는 자를 말한다.</div>
+        <div class="item">13. "전자적 전송매체"란 정보통신망을 통하여 부호ㆍ문자ㆍ음성ㆍ화상 또는 영상 등을 수신자에게 전자문서 등의 전자적 형태로 전송하는 매체를 말한다.</div>
+
+        <div class="clause">② 이 법에서 사용하는 용어의 뜻은 제1항에서 정하는 것 외에는 「지능정보화 기본법」에서 정하는 바에 따른다. &lt;개정 2008. 6. 13., 2013. 3. 23., 2020. 6. 9.&gt;<br>
+            <div class="toggle-btn" onclick="toggleReference('net-ref-4')">▶ [인용 법률 확인] 지능정보화 기본법 제2조</div>
+            <div id="net-ref-4" class="reference-box">
+                <strong>[지능정보화 기본법] 제2조(정의)</strong>
+                이 법에서 사용하는 용어의 뜻은 다음과 같다.<br>
+                1. "정보"란 광(光) 또는 전자적 방식으로 처리되는 부호, 문자, 음성, 음향 및 영상 등으로 표현된 모든 종류의 자료 또는 지식을 말한다.<br>
+                2. "정보화"란 정보를 생산ㆍ유통 또는 활용하여 사회 각 분야의 활동을 가능하게 하거나 그러한 활동의 효율화를 도모하는 것을 말한다.<br>
+                3. "정보통신"란 정보의 수집ㆍ가공ㆍ저장ㆍ검색ㆍ송신ㆍ수신 및 그 활용, 이에 관련되는 기기ㆍ기술ㆍ서비스 및 그 밖에 정보화를 촉진하기 위한 일련의 활동과 수단을 말한다.<br>
+                [이하 생략 - 원문 참조]
+                <br><a href="https://www.law.go.kr/LSW/lsInfoP.do?lsNm=지능정보화기본법" target="_blank" class="ref-link">지능정보화 기본법 원문보기</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. 개인정보 보호법 -->
+    <div id="tab-privacy" class="tab-content">
+        <a href="https://www.law.go.kr/LSW/lsInfoP.do?lsNm=개인정보보호법" target="_blank" class="law-link">
+            국가법령정보센터 원문 보기 (개인정보 보호법)
+        </a>
+        <div class="article-title">제2조(정의)</div>
+        <div class="clause">이 법에서 사용하는 용어의 뜻은 다음과 같다. &lt;개정 2014. 3. 24., 2020. 2. 4., 2023. 3. 14.&gt;</div>
+        
+        <div class="item">1. "개인정보"란 살아 있는 개인에 관한 정보로서 다음 각 목의 어느 하나에 해당하는 정보를 말한다.
+            <div class="sub-item">가. 성명, 주민등록번호 및 영상 등을 통하여 개인을 알아볼 수 있는 정보</div>
+            <div class="sub-item">나. 해당 정보만으로는 특정 개인을 알아볼 수 없더라도 다른 정보와 쉽게 결합하여 알아볼 수 있는 정보. 이 경우 쉽게 결합할 수 있는지 여부는 다른 정보의 입수 가능성 등 개인을 알아보는 데 소요되는 시간, 비용, 기술 등을 합리적으로 고려하여야 한다.</div>
+            <div class="sub-item">다. 가목 또는 나목을 제1호의2에 따라 가명처리함으로써 원래의 상태로 복원하기 위한 추가 정보의 사용ㆍ결합 없이는 특정 개인을 알아볼 수 없는 정보(이하 "가명정보"라 한다)</div>
+        </div>
+        
+        <div class="item">1의2. "가명처리"란 개인정보의 일부를 삭제하거나 일부 또는 전부를 대체하는 등의 방법으로 추가 정보가 없이는 특정 개인을 알아볼 수 없도록 처리하는 것을 말한다.</div>
+        
+        <div class="item">2. "처리"란 개인정보의 수집, 생성, 연계, 연동, 기록, 저장, 보유, 가공, 편집, 검색, 출력, 정정(訂正), 복구, 이용, 제공, 공개, 파기(破棄), 그 밖에 이와 유사한 행위를 말한다.</div>
+        
+        <div class="item">3. "정보주체"란 처리되는 정보에 의하여 알아볼 수 있는 사람으로서 그 정보의 주체가 되는 사람을 말한다.</div>
+        
+        <div class="item">4. "개인정보처리자"란 업무를 목적으로 개인정보파일을 운용하기 위하여 스스로 또는 다른 사람을 통하여 개인정보를 처리하는 공공기관, 법인, 단체 및 개인 등을 말한다.</div>
+        
+        <div class="item">5. "개인정보 보호책임자"란 개인정보처리자의 개인정보 처리에 관한 업무를 총괄해서 책임지는 자를 말한다.</div>
+        
+        <div class="item">6. "공공기관"이란 다음 각 목의 기관을 말한다.
+            <div class="sub-item">가. 국회, 법원, 헌법재판소, 중앙선거관리위원회의 행정사무를 처리하는 기관, 중앙행정기관(대통령 소속 기관과 국무총리 소속 기관을 포함한다) 및 그 소속 기관, 지방자치단체</div>
+            <div class="sub-item">나. 그 밖의 국가기관 및 공공단체 중 대통령령으로 정하는 기관<br>
+                <div class="toggle-btn" onclick="toggleReference('priv-ref-1')">▶ [시행령] 제2조 보기</div>
+                <div id="priv-ref-1" class="reference-box">
+                    <strong>[개인정보 보호법 시행령] 제2조(공공기관의 범위)</strong>
+                    「개인정보 보호법」(이하 "법"이라 한다) 제2조제6호나목에서 "대통령령으로 정하는 기관"이란 다음 각 호의 기관을 말한다.<br>
+                    1. 「공공기관의 운영에 관한 법률」 제4조에 따른 공공기관<br>
+                    2. 「지방공기업법」에 따른 지방공사 및 지방공단<br>
+                    3. 특별법에 의하여 설립된 특수법인<br>
+                    4. 「초ㆍ중등교육법」, 「고등교육법」 및 그 밖의 다른 법률에 따라 설치된 각급 학교<br>
+                    <a href="https://www.law.go.kr/LSW/lsInfoP.do?lsNm=개인정보보호법시행령" target="_blank" class="ref-link">개인정보 보호법 시행령 원문보기</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="item">7. "영상정보처리기기"란 일정한 공간에 지속적으로 설치되어 사람 또는 사물의 영상 등을 촬영하거나 이를 유ㆍ무선망을 통하여 전송하는 장치로서 대통령령으로 정하는 장치를 말한다.<br>
+            <div class="toggle-btn" onclick="toggleReference('priv-ref-2')">▶ [시행령] 제3조 보기</div>
+            <div id="priv-ref-2" class="reference-box">
+                <strong>[개인정보 보호법 시행령] 제3조(영상정보처리기기의 범위)</strong>
+                법 제2조제7호에서 "대통령령으로 정하는 장치"란 다음 각 호의 장치를 말한다.<br>
+                1. 폐쇄회로 텔레비전<br>
+                2. 네트워크 카메라
+            </div>
+        </div>
+        
+        <div class="item">7의2. "이동형 영상정보처리기기"란 사람의 신체 또는 옷에 착용하거나 휴대하는 등 이동하면서 사람 또는 사물의 영상 등을 촬영하거나 이를 유ㆍ무선망을 통하여 전송하는 장치로서 대통령령으로 정하는 장치를 말한다.<br>
+            <div class="toggle-btn" onclick="toggleReference('priv-ref-3')">▶ [시행령] 제3조의2 보기</div>
+            <div id="priv-ref-3" class="reference-box">
+                <strong>[개인정보 보호법 시행령] 제3조의2(이동형 영상정보처리기기의 범위)</strong>
+                법 제2조제7호의2에서 "대통령령으로 정하는 장치"란 다음 각 호의 장치를 말한다.<br>
+                1. 착용형 영상정보처리기기(스마트안경, 스마트워치 등 사람의 신체 또는 옷에 착용하여 촬영하는 장치)<br>
+                2. 휴대형 영상정보처리기기(디지털카메라, 스마트폰, 캠코더 등 사람이 휴대하여 촬영하는 장치)<br>
+                3. 부착ㆍ거치형 영상정보처리기기(드론, 자율주행차 등 이동 가능한 물체에 부착ㆍ거치하여 촬영하는 장치)
+            </div>
+        </div>
+        
+        <div class="item">8. "과학적 연구"란 기술의 개발과 실증, 기초연구, 응용연구 및 민간 투자 연구 등 과학적 방법을 적용하는 연구를 말한다.</div>
+    </div>
+
+    <!-- 3. 전자금융거래법 -->
+    <div id="tab-efinance" class="tab-content">
+        <a href="https://www.law.go.kr/LSW/lsInfoP.do?lsNm=전자금융거래법" target="_blank" class="law-link">국가법령정보센터 원문 보기 (전자금융거래법)</a>
+        <div class="article-title">제2조(정의)</div>
+        <div class="clause">이 법에서 사용하는 용어의 뜻은 다음과 같다. [원문 중 주요 부분 발췌 수록]</div>
+        
+        <div class="item">1. "전자금융거래"라 함은 금융회사 또는 전자금융업자가 전자적 장치를 통하여 금융상품 및 서비스를 제공(이하 "전자금융업무"라 한다)하고, 이용자가 금융회사 또는 전자금융업자의 종사자와 직접 대면하거나 의사소통을 하지 아니하고 자동화된 방식으로 이를 이용하는 거래를 말한다.</div>
+        
+        <div class="item">10. "접근매체"라 함은 전자금융거래에 있어서 거래지시를 하거나 이용자 및 거래내용의 진실성과 정확성을 확보하기 위하여 사용되는 다음 각 목의 어느 하나에 해당하는 수단 또는 정보를 말한다.
+            <div class="sub-item">가. 전자식 카드 및 이에 준하는 전자적 정보</div>
+            <div class="sub-item">나. 「전자서명법」 제2조제4호의 전자서명생성정보 및 같은 조 제7호의 인증서<br>
+                <div class="toggle-btn" onclick="toggleReference('efin-ref-1')">▶ [인용 법률 확인] 전자서명법 제2조</div>
+                <div id="efin-ref-1" class="reference-box">
+                    <strong>[전자서명법] 제2조(정의)</strong><br>
+                    4. "전자서명생성정보"란 전자서명을 생성하기 위하여 이용하는 전자적 데이터를 말한다.<br>
+                    7. "인증서"란 전자서명생성정보가 가입자에게 유일하게 속한다는 사실 등을 확인하고 이를 증명하는 전자적 정보를 말한다.<br>
+                    <a href="https://www.law.go.kr/LSW/lsInfoP.do?lsNm=전자서명법" target="_blank" class="ref-link">전자서명법 원문보기</a>
+                </div>
+            </div>
+            <div class="sub-item">다. 금융회사 또는 전자금융업자에 등록된 이용자번호</div>
+            <div class="sub-item">라. 이용자의 생체정보</div>
+            <div class="sub-item">마. 가목 또는 다목의 수단이나 정보를 사용하는데 필요한 비밀번호</div>
+        </div>
+        <div class="item">14. "선불전자지급수단"이라 함은 이전 가능한 금전적 가치가 전자적 방법으로 저장되어 발행된 증표 또는 그 증표에 관한 정보로서 다음 각 목의 요건을 모두 갖춘 것을 말한다.
+            <div class="sub-item">가. 발행인(대통령령이 정하는 특수관계인을 포함한다) 외의 제3자로부터 재화 또는 용역을 구입하고 그 대가를 지급하는데 사용될 것</div>
+            <div class="sub-item">나. 구입할 수 있는 재화 또는 용역의 범위가 2개 이상으로서 대통령령이 정하는 업종 수 이상일 것<br>
+                <div class="toggle-btn" onclick="toggleReference('efin-ref-2')">▶ [시행령] 제2조의2 보기</div>
+                <div id="efin-ref-2" class="reference-box">
+                    <strong>[전자금융거래법 시행령] 제2조의2(선불전자지급수단의 요건)</strong><br>
+                    법 제2조제14호나목에서 "대통령령이 정하는 업종 수"라 함은 2를 말한다. 다만, 다음 각 호의 어느 하나에 해당하는 경우에는 1로 한다.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. 가상자산이용자보호법 -->
+    <div id="tab-virtual" class="tab-content">
+        <a href="https://www.law.go.kr/LSW/lsInfoP.do?lsNm=가상자산이용자보호등에관한법률" target="_blank" class="law-link">국가법령정보센터 원문 보기 (가상자산이용자보호법)</a>
+        <div class="article-title">제2조(정의)</div>
+        <div class="clause">이 법에서 사용하는 용어의 뜻은 다음과 같다.</div>
+        
+        <div class="item">1. "가상자산"이란 경제적 가치를 지닌 것으로서 전자적으로 거래 또는 이전될 수 있는 전자적 증표(그에 관한 일체의 권리를 포함한다)를 말한다. 다만, 다음 각 목의 어느 하나에 해당하는 것은 제외한다.
+            <div class="sub-item">가. 화폐ㆍ재화ㆍ용역 등으로 교환될 수 없는 전자적 증표 또는 그 증표에 관한 정보로서 발행인이 사용처와 그 용도를 제한한 것</div>
+            <div class="sub-item">나. 「게임산업진흥에 관한 법률」 제32조제1항제7호에 따른 게임물의 이용을 통하여 획득한 유ㆍ무형의 결과물<br>
+                <div class="toggle-btn" onclick="toggleReference('virt-ref-1')">▶ [인용 법률 확인] 게임산업진흥에 관한 법률 제32조제1항제7호</div>
+                <div id="virt-ref-1" class="reference-box">
+                    <strong>[게임산업진흥에 관한 법률] 제32조(불법게임물 등의 유통금지 등)</strong><br>
+                    ① 누구든지 게임물의 유통질서를 저해하는 다음 각 호의 행위를 하여서는 아니 된다.<br>
+                    7. 누구든지 게임물의 이용을 통하여 획득한 유ㆍ무형의 결과물(점수, 경품, 게임 내에서 사용되는 가상의 화폐로서 대통령령이 정하는 게임머니 및 대통령령이 정하는 이와 유사한 것을 말한다)을 환전 또는 환전 알선하거나 재매입을 업으로 하는 행위
+                </div>
+            </div>
+            <div class="sub-item">다. 「전자금융거래법」 제2조제14호에 따른 선불전자지급수단 및 같은 조 제15호에 따른 전자화폐</div>
+            <div class="sub-item">라. 「주식ㆍ사채 등의 전자등록에 관한 법률」 제2조제4호에 따른 전자등록주식등</div>
+            <div class="sub-item">마. 「전자어음의 발행 및 유통에 관한 법률」 제2조제2호에 따른 전자어음</div>
+            <div class="sub-item">바. 「상법」 제862조에 따른 전자선하증권</div>
+            <div class="sub-item">사. 「한국은행법」에 따른 한국은행(이하 "한국은행"이라 한다)이 발행하는 전자적 형태의 화폐 및 그와 관련된 서비스</div>
+            <div class="sub-item">아. 거래의 형태와 특성을 고려하여 대통령령으로 정하는 것<br>
+                <div class="toggle-btn" onclick="toggleReference('virt-ref-2')">▶ [시행령] 제2조 보기</div>
+                <div id="virt-ref-2" class="reference-box">
+                    <strong>[가상자산 이용자 보호 등에 관한 법률 시행령] 제2조(가상자산에서 제외되는 대상)</strong><br>
+                    법 제2조제1호아목에서 "대통령령으로 정하는 것"이란 다음 각 호의 어느 하나에 해당하는 것을 말한다.<br>
+                    1. 「자본시장과 금융투자업에 관한 법률」에 따른 전자등록증권등<br>
+                    2. 대체불가능한 전자적 증표(Non-Fungible Token)
+                </div>
+            </div>
+        </div>
+        
+        <div class="item">2. "가상자산사업자"란 가상자산과 관련하여 다음 각 목의 어느 하나에 해당하는 행위를 영업으로 하는 자를 말한다.
+            <div class="sub-item">가. 가상자산을 매도ㆍ매수(이하 "매매"라 한다)하는 행위</div>
+            <div class="sub-item">나. 가상자산을 다른 가상자산과 교환하는 행위</div>
+            <div class="sub-item">다. 가상자산을 이전하는 행위 중 대통령령으로 정하는 행위</div>
+            <div class="sub-item">라. 가상자산을 보관 또는 관리하는 행위</div>
+            <div class="sub-item">마. 가목 및 나목의 행위를 중개ㆍ알선하거나 대행하는 행위</div>
+        </div>
+        
+        <div class="item">3. "이용자"란 가상자산사업자를 통하여 가상자산을 매매, 교환, 이전 또는 보관ㆍ관리하는 자를 말한다.</div>
+        
+        <div class="item">4. "가상자산시장"이란 가상자산의 매매 또는 가상자산 간 교환을 할 수 있는 시장을 말한다.</div>
+    </div>
+
+</div>
+
+</body>
+</html>
